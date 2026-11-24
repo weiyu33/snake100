@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#071018" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="百关贪吃蛇" />
+  <meta name="format-detection" content="telephone=no" />
+  <title>百关贪吃蛇 · 手机版</title>
+  <link rel="manifest" href="./manifest-mobile.webmanifest" />
+  <link rel="apple-touch-icon" href="./icons/icon-180.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+  <style>
+    :root {
+      --bg: #071018;
+      --panel: rgba(10, 24, 36, 0.88);
+      --line: rgba(94, 234, 212, 0.22);
+      --mint: #5eead4;
+      --gold: #fbbf24;
+      --ink: #e8f6f3;
+      --muted: #8aa4b0;
+      --pad: 12px;
+      --safe-top: env(safe-area-inset-top, 59px);
+      --safe-bottom: env(safe-area-inset-bottom, 34px);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "PingFang SC", "Noto Serif SC", "Songti SC", sans-serif;
+      overscroll-behavior: none;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      min-height: 100svh;
+      min-height: 100dvh;
+    }
+    .app {
+      height: 100svh;
+      height: 100dvh;
+      width: 100%;
+      max-width: 430px;
+      margin: 0 auto;
+      padding: calc(var(--safe-top) + 8px) var(--pad) calc(var(--safe-bottom) + 8px);
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+      gap: 8px;
+    }
+    .top {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 0.12em;
+      font-weight: 700;
+    }
+    .level-chip {
+      font-family: ui-monospace, "SF Mono", monospace;
+      color: var(--mint);
+      font-size: 13px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 10px;
+      white-space: nowrap;
+    }
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .stat {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 7px 8px;
+      min-width: 0;
+    }
+    .stat span { display: block; color: var(--muted); font-size: 11px; }
+    .stat b {
+      display: block;
+      margin-top: 2px;
+      font-family: ui-monospace, "SF Mono", monospace;
+      font-size: 16px;
+      color: var(--mint);
+      font-weight: 700;
+    }
+    .board-wrap {
+      position: relative;
+      justify-self: center;
+      width: min(100%, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 290px));
+      max-width: 100%;
+      aspect-ratio: 1 / 1;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 8px;
+      min-height: 0;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 12px;
+      background: #041016;
+      image-rendering: pixelated;
+      touch-action: none;
+    }
+    .meta {
+      min-height: 42px;
+    }
+    .mission {
+      font-size: 13px;
+      line-height: 1.35;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .quote-mini {
+      margin-top: 3px;
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--muted);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .quote-mini em { color: var(--gold); font-style: normal; }
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .btns { display: flex; gap: 8px; }
+    button {
+      font-family: inherit;
+      appearance: none;
+      border: 1px solid var(--line);
+      background: rgba(94, 234, 212, 0.10);
+      color: var(--ink);
+      border-radius: 14px;
+      min-height: 44px;
+      padding: 0 14px;
+      font-size: 14px;
+    }
+    button.primary {
+      background: var(--mint);
+      color: #04231f;
+      border-color: transparent;
+      font-weight: 700;
+    }
+    button:active { transform: scale(0.97); }
+    .pad {
+      width: 168px;
+      height: 168px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 6px;
+      justify-self: end;
+    }
+    .pad button {
+      min-height: 0;
+      padding: 0;
+      border-radius: 16px;
+      font-size: 20px;
+      background: rgba(94, 234, 212, 0.14);
+    }
+    .pad .u { grid-area: 1 / 2; }
+    .pad .l { grid-area: 2 / 1; }
+    .pad .r { grid-area: 2 / 3; }
+    .pad .d { grid-area: 3 / 2; }
+    .overlay {
+      position: absolute;
+      inset: 8px;
+      border-radius: 12px;
+      background: rgba(4, 16, 22, 0.90);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 18px 14px;
+    }
+    .overlay.hidden { display: none; }
+    .overlay h3 { margin: 0 0 8px; font-size: 22px; color: var(--gold); }
+    .overlay p { margin: 0 0 14px; font-size: 14px; line-height: 1.65; color: #d7ece8; }
+    .author { color: var(--mint); }
+    .install {
+      color: var(--muted);
+      font-size: 11px;
+      text-align: center;
+    }
+    @supports (height: 100dvh) {
+      .board-wrap { width: min(100%, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 290px)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="top">
+      <h1>百关贪吃蛇</h1>
+      <div class="level-chip" id="level">01 / 100</div>
+    </div>
+    <div class="hud">
+      <div class="stat"><span>本关食物</span><b id="food">0 / 3</b></div>
+      <div class="stat"><span>蛇身长度</span><b id="len">3</b></div>
+      <div class="stat"><span>最高通关</span><b id="best">0</b></div>
+    </div>
+    <div class="board-wrap">
+      <canvas id="board" width="720" height="720" aria-label="贪吃蛇棋盘"></canvas>
+      <div class="overlay" id="overlay">
+        <div>
+          <h3 id="overlayTitle">百关启程</h3>
+          <p id="overlayText">竖屏专为 iPhone 设计。用下方方向键或在棋盘上滑动。吃满本关果实即可通关，并点亮一句名言。</p>
+          <button class="primary" id="startBtn" type="button">开始第 1 关</button>
+        </div>
+      </div>
+    </div>
+    <div class="meta">
+      <div class="mission" id="missionTitle">第 1 关 · 初入林间</div>
+      <div class="mission" id="mission" style="color:#8aa4b0">慢速热身。吃 3 颗果实即可过关。</div>
+      <div class="quote-mini" id="lastQuote">尚未通关。通关后，名言会写在这里。</div>
+    </div>
+    <div class="controls">
+      <div class="btns">
+        <button class="primary" id="pauseBtn" type="button">暂停</button>
+        <button id="retryBtn" type="button">重开</button>
+        <button id="resetBtn" type="button">重置</button>
+      </div>
+      <div class="pad" aria-label="方向键">
+        <button class="u" type="button" data-dir="up">↑</button>
+        <button class="l" type="button" data-dir="left">←</button>
+        <button class="r" type="button" data-dir="right">→</button>
+        <button class="d" type="button" data-dir="down">↓</button>
+      </div>
+    </div>
+    <div class="install">Safari 打开后：分享 → 添加到主屏幕</div>
+  </div>
+  <script>
+    const QUOTES = [
+      ["学而时习之，不亦说乎？", "孔子"],
+      ["千里之行，始于足下。", "老子"],
+      ["天行健，君子以自强不息。", "《周易》"],
+      ["路漫漫其修远兮，吾将上下而求索。", "屈原"],
+      ["勿以善小而不为，勿以恶小而为之。", "刘备"],
+      ["三人行，必有我师焉。", "孔子"],
+      ["知之者不如好之者，好之者不如乐之者。", "孔子"],
+      ["不积跬步，无以至千里。", "荀子"],
+      ["工欲善其事，必先利其器。", "孔子"],
+      ["博学之，审问之，慎思之，明辨之，笃行之。", "《中庸》"],
+      ["志不强者智不达。", "墨子"],
+      ["吾生也有涯，而知也无涯。", "庄子"],
+      ["非淡泊无以明志，非宁静无以致远。", "诸葛亮"],
+      ["宝剑锋从磨砺出，梅花香自苦寒来。", "《警世贤文》"],
+      ["世上无难事，只怕有心人。", "俗语"],
+      ["业精于勤，荒于嬉。", "韩愈"],
+      ["少壮不努力，老大徒伤悲。", "汉乐府"],
+      ["纸上得来终觉浅，绝知此事要躬行。", "陆游"],
+      ["问渠那得清如许？为有源头活水来。", "朱熹"],
+      ["山重水复疑无路，柳暗花明又一村。", "陆游"],
+      ["会当凌绝顶，一览众山小。", "杜甫"],
+      ["长风破浪会有时，直挂云帆济沧海。", "李白"],
+      ["天生我材必有用。", "李白"],
+      ["落红不是无情物，化作春泥更护花。", "龚自珍"],
+      ["沉舟侧畔千帆过，病树前头万木春。", "刘禹锡"],
+      ["不畏浮云遮望眼，自缘身在最高层。", "王安石"],
+      ["欲穷千里目，更上一层楼。", "王之涣"],
+      ["海纳百川，有容乃大。", "林则徐"],
+      ["穷则独善其身，达则兼济天下。", "孟子"],
+      ["得道者多助，失道者寡助。", "孟子"],
+      ["知人者智，自知者明。", "老子"],
+      ["胜人者有力，自胜者强。", "老子"],
+      ["合抱之木，生于毫末。", "老子"],
+      ["祸兮福之所倚，福兮祸之所伏。", "老子"],
+      ["己所不欲，勿施于人。", "孔子"],
+      ["见贤思齐焉，见不贤而内自省也。", "孔子"],
+      ["岁寒，然后知松柏之后凋也。", "孔子"],
+      ["士不可以不弘毅，任重而道远。", "曾子"],
+      ["天将降大任于是人也，必先苦其心志。", "孟子"],
+      ["生，亦我所欲也；义，亦我所欲也。", "孟子"],
+      ["知止而后有定，定而后能静。", "《大学》"],
+      ["物格而后知至，知至而后意诚。", "《大学》"],
+      ["兵者，国之大事，死生之地，存亡之道。", "孙子"],
+      ["知彼知己，百战不殆。", "孙子"],
+      ["不战而屈人之兵，善之善者也。", "孙子"],
+      ["故善战者，求之于势。", "孙子"],
+      ["静如处女，动如脱兔。", "孙子"],
+      ["以正合，以奇胜。", "孙子"],
+      ["天下难事，必作于易。", "老子"],
+      ["图难于其易，为大于其细。", "老子"],
+      ["Imagination is more important than knowledge.", "Albert Einstein"],
+      ["The only thing we have to fear is fear itself.", "Franklin D. Roosevelt"],
+      ["I have a dream.", "Martin Luther King Jr."],
+      ["Be the change you wish to see in the world.", "Mahatma Gandhi"],
+      ["Stay hungry, stay foolish.", "Steve Jobs"],
+      ["The journey of a thousand miles begins with one step.", "Lao Tzu"],
+      ["What we think, we become.", "Buddha"],
+      ["To be, or not to be, that is the question.", "William Shakespeare"],
+      ["Knowledge is power.", "Francis Bacon"],
+      ["I think, therefore I am.", "René Descartes"],
+      ["Fortune favors the bold.", "Virgil"],
+      ["The unexamined life is not worth living.", "Socrates"],
+      ["Well begun is half done.", "Aristotle"],
+      ["He who has a why to live can bear almost any how.", "Friedrich Nietzsche"],
+      ["Man is born free, and everywhere he is in chains.", "Jean-Jacques Rousseau"],
+      ["That which does not kill us makes us stronger.", "Friedrich Nietzsche"],
+      ["In the middle of difficulty lies opportunity.", "Albert Einstein"],
+      ["Life is what happens when you are busy making other plans.", "John Lennon"],
+      ["The future belongs to those who believe in the beauty of their dreams.", "Eleanor Roosevelt"],
+      ["Do what you can, with what you have, where you are.", "Theodore Roosevelt"],
+      ["It always seems impossible until it is done.", "Nelson Mandela"],
+      ["Success is not final, failure is not fatal.", "Winston Churchill"],
+      ["We are what we repeatedly do. Excellence, then, is not an act, but a habit.", "Will Durant"],
+      ["The only true wisdom is in knowing you know nothing.", "Socrates"],
+      ["Time is the most valuable thing a man can spend.", "Theophrastus"],
+      ["You miss 100 percent of the shots you do not take.", "Wayne Gretzky"],
+      ["Whether you think you can, or you think you cannot, you are right.", "Henry Ford"],
+      ["Simplicity is the ultimate sophistication.", "Leonardo da Vinci"],
+      ["The best way to predict the future is to invent it.", "Alan Kay"],
+      ["Talk is cheap. Show me the code.", "Linus Torvalds"],
+      ["First, solve the problem. Then, write the code.", "John Johnson"],
+      ["Programs must be written for people to read.", "Harold Abelson"],
+      ["Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away.", "Antoine de Saint-Exupéry"],
+      ["Not all those who wander are lost.", "J.R.R. Tolkien"],
+      ["It is our choices that show what we truly are.", "J.K. Rowling"],
+      ["Happiness can be found even in the darkest of times, if one only remembers to turn on the light.", "Albus Dumbledore"],
+      ["Do not go where the path may lead, go instead where there is no path and leave a trail.", "Ralph Waldo Emerson"],
+      ["The only way to do great work is to love what you do.", "Steve Jobs"],
+      ["Genius is one percent inspiration and ninety-nine percent perspiration.", "Thomas Edison"],
+      ["If I have seen further, it is by standing on the shoulders of giants.", "Isaac Newton"],
+      ["Science is organized knowledge. Wisdom is organized life.", "Immanuel Kant"],
+      ["The important thing is not to stop questioning.", "Albert Einstein"],
+      ["Education is the kindling of a flame, not the filling of a vessel.", "Plutarch"],
+      ["An investment in knowledge pays the best interest.", "Benjamin Franklin"],
+      ["Courage is not the absence of fear, but the triumph over it.", "Nelson Mandela"],
+      ["Fall seven times, stand up eight.", "Japanese proverb"],
+      ["A journey is best measured in friends, rather than miles.", "Tim Cahill"],
+      ["The secret of getting ahead is getting started.", "Mark Twain"],
+      ["Done is better than perfect.", "Sheryl Sandberg"],
+      ["The cave you fear to enter holds the treasure you seek.", "Joseph Campbell"]
+    ];
+    const canvas = document.getElementById("board");
+    const ctx = canvas.getContext("2d");
+    const overlay = document.getElementById("overlay");
+    const overlayTitle = document.getElementById("overlayTitle");
+    const overlayText = document.getElementById("overlayText");
+    const startBtn = document.getElementById("startBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const KEY = "snake-100-progress-v1";
+    const DIRS = { up:{x:0,y:-1}, down:{x:0,y:1}, left:{x:-1,y:0}, right:{x:1,y:0} };
+    const OPP = { up:"down", down:"up", left:"right", right:"left" };
+    const state = {
+      level: 1, best: 0, running: false, paused: false,
+      snake: [], dirName: "right", nextDirName: "right",
+      food: null, eaten: 0, walls: [], tick: null, lastQuote: null
+    };
+    function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+    function keyOf(p) { return p.x + "," + p.y; }
+    function levelConfig(level) {
+      const n = clamp(level, 1, 100);
+      const size = n < 20 ? 16 : n < 40 ? 18 : n < 65 ? 20 : n < 85 ? 22 : 24;
+      const goal = 3 + Math.floor((n - 1) / 5);
+      const speed = clamp(220 - n * 1.5, 58, 220);
+      const wrap = n <= 10;
+      const wallMode = n <= 10 ? "none" : n <= 22 ? "border" : n <= 45 ? "pillars" : n <= 72 ? "maze" : "gauntlet";
+      const names = ["初入林间","晨露小径","溪边试探","竹影轻摇","浅滩觅食","风过麦田","暮色庭院","石桥夜行","密林穿梭","绝顶回望"];
+      const title = names[Math.min(9, Math.floor((n - 1) / 10))];
+      const desc = [
+        wrap ? "边界可穿越" : "撞边即失败",
+        "速度约 " + (1000 / speed).toFixed(1) + " 格/秒",
+        "需吃 " + goal + " 颗果实",
+        { none:"场地空旷", border:"四周封墙", pillars:"石柱障碍", maze:"迷宫走廊", gauntlet:"窄道试炼" }[wallMode]
+      ].join(" · ");
+      return { n, size, goal, speed, wrap, wallMode, title, desc };
+    }
+    function occupiedSet() {
+      const s = new Set();
+      for (const p of state.snake) s.add(keyOf(p));
+      for (const p of state.walls) s.add(keyOf(p));
+      return s;
+    }
+    function makeWalls(cfg) {
+      const walls = [];
+      const add = (x, y) => {
+        if (x > 0 && y > 0 && x < cfg.size - 1 && y < cfg.size - 1) walls.push({ x, y });
+      };
+      if (cfg.wallMode === "none" || cfg.wallMode === "border") return walls;
+      if (cfg.wallMode === "pillars") {
+        const gap = 5;
+        for (let y = 4; y < cfg.size - 4; y += gap) {
+          for (let x = 4; x < cfg.size - 4; x += gap) add(x, y);
+        }
+      }
+      if (cfg.wallMode === "maze") {
+        for (let y = 3; y < cfg.size - 3; y += 4) {
+          for (let x = 3; x < cfg.size - 3; x += 4) {
+            const len = 3 + ((x + y + cfg.n) % 3);
+            const horiz = ((x / 4 + y / 4) % 2 === 0);
+            for (let i = 0; i < len; i++) {
+              if (horiz) add(x + i, y); else add(x, y + i);
+            }
+          }
+        }
+      }
+      if (cfg.wallMode === "gauntlet") {
+        const a = Math.floor(cfg.size / 3);
+        const b = Math.floor(cfg.size * 2 / 3);
+        for (let i = 2; i < cfg.size - 2; i++) {
+          if (i % 4 !== 0) { add(a, i); add(b, cfg.size - 1 - i); }
+        }
+        for (let x = 2; x < cfg.size - 2; x++) {
+          if (x % 5 === 0) add(x, Math.floor(cfg.size / 2));
+        }
+      }
+      return walls.filter(p => !(p.y === Math.floor(cfg.size / 2) && p.x < 7));
+    }
+    function spawnFood(cfg) {
+      const used = occupiedSet();
+      const free = [];
+      for (let y = 0; y < cfg.size; y++) {
+        for (let x = 0; x < cfg.size; x++) {
+          if (!used.has(x + "," + y)) free.push({ x, y });
+        }
+      }
+      state.food = free.length ? free[Math.floor(Math.random() * free.length)] : null;
+    }
+    function loadProgress() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(KEY) || "{}");
+        state.level = clamp(raw.level || 1, 1, 100);
+        state.best = clamp(raw.best || 0, 0, 100);
+        state.lastQuote = raw.lastQuote || null;
+        if (state.lastQuote) {
+          document.getElementById("lastQuote").innerHTML =
+            "上一句：<em>「" + state.lastQuote[0] + "」</em> — " + state.lastQuote[1];
+        }
+      } catch (err) {}
+    }
+    function saveProgress() {
+      localStorage.setItem(KEY, JSON.stringify({
+        level: state.level, best: state.best, lastQuote: state.lastQuote
+      }));
+    }
+    function updateHud(cfg) {
+      document.getElementById("level").textContent = String(cfg.n).padStart(2, "0") + " / 100";
+      document.getElementById("food").textContent = state.eaten + " / " + cfg.goal;
+      document.getElementById("len").textContent = String(state.snake.length);
+      document.getElementById("best").textContent = String(state.best);
+      document.getElementById("missionTitle").textContent = "第 " + cfg.n + " 关 · " + cfg.title;
+      document.getElementById("mission").textContent = cfg.desc;
+    }
+    function showOverlay(title, html, btn) {
+      overlayTitle.textContent = title;
+      overlayText.innerHTML = html;
+      startBtn.textContent = btn;
+      overlay.classList.remove("hidden");
+    }
+    function draw(cfg) {
+      const cell = canvas.width / cfg.size;
+      ctx.fillStyle = "#041016";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "rgba(94,234,212,0.07)";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= cfg.size; i++) {
+        ctx.beginPath(); ctx.moveTo(i * cell, 0); ctx.lineTo(i * cell, canvas.height); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i * cell); ctx.lineTo(canvas.width, i * cell); ctx.stroke();
+      }
+      if (!cfg.wrap) {
+        ctx.strokeStyle = "rgba(251,113,133,0.6)";
+        ctx.lineWidth = 5;
+        ctx.strokeRect(2.5, 2.5, canvas.width - 5, canvas.height - 5);
+      }
+      ctx.fillStyle = "rgba(251,113,133,0.78)";
+      for (const w of state.walls) ctx.fillRect(w.x * cell + 2, w.y * cell + 2, cell - 4, cell - 4);
+      if (state.food) {
+        const pulse = 0.72 + Math.sin(Date.now() / 180) * 0.14;
+        const pad = cell * (1 - pulse) / 2;
+        ctx.fillStyle = "#fbbf24";
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(state.food.x * cell + pad, state.food.y * cell + pad, cell - pad * 2, cell - pad * 2, 6);
+        else ctx.rect(state.food.x * cell + pad, state.food.y * cell + pad, cell - pad * 2, cell - pad * 2);
+        ctx.fill();
+      }
+      state.snake.forEach((p, i) => {
+        const t = i / Math.max(1, state.snake.length - 1);
+        ctx.fillStyle = i === state.snake.length - 1 ? "#5eead4" : "rgba(94,234,212," + (0.32 + t * 0.58) + ")";
+        ctx.fillRect(p.x * cell + 1.5, p.y * cell + 1.5, cell - 3, cell - 3);
+      });
+      const head = state.snake[state.snake.length - 1];
+      const dir = DIRS[state.dirName];
+      if (head && dir) {
+        ctx.fillStyle = "#04231f";
+        ctx.beginPath();
+        ctx.arc(head.x * cell + cell / 2 + dir.x * 5, head.y * cell + cell / 2 + dir.y * 5, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    function resetLevel() {
+      const cfg = levelConfig(state.level);
+      const mid = Math.floor(cfg.size / 2);
+      state.snake = [{ x: 2, y: mid }, { x: 3, y: mid }, { x: 4, y: mid }];
+      state.dirName = "right";
+      state.nextDirName = "right";
+      state.eaten = 0;
+      state.paused = false;
+      pauseBtn.textContent = "暂停";
+      state.walls = makeWalls(cfg);
+      spawnFood(cfg);
+      updateHud(cfg);
+      draw(cfg);
+    }
+    function stopLoop() {
+      if (state.tick) { clearInterval(state.tick); state.tick = null; }
+      state.running = false;
+    }
+    function startLoop() {
+      stopLoop();
+      const cfg = levelConfig(state.level);
+      state.running = true;
+      state.paused = false;
+      pauseBtn.textContent = "暂停";
+      overlay.classList.add("hidden");
+      state.tick = setInterval(step, cfg.speed);
+    }
+    function die() {
+      stopLoop();
+      startBtn.dataset.mode = "retry";
+      showOverlay("功亏一篑", "这一关尚未吃满果实。再试一次。", "重开第 " + state.level + " 关");
+    }
+    function win() {
+      stopLoop();
+      const quote = QUOTES[state.level - 1];
+      state.best = Math.max(state.best, state.level);
+      state.lastQuote = quote;
+      document.getElementById("lastQuote").innerHTML =
+        "通关名言：<em>「" + quote[0] + "」</em> — " + quote[1];
+      if (state.level >= 100) {
+        saveProgress();
+        startBtn.dataset.mode = "restart-all";
+        showOverlay("百关圆满", "「" + quote[0] + "」<br><span class='author'>— " + quote[1] + "</span>", "再从第 1 关启程");
+        return;
+      }
+      const next = state.level + 1;
+      state.level = next;
+      saveProgress();
+      startBtn.dataset.mode = "next";
+      showOverlay("第 " + (next - 1) + " 关通过", "「" + quote[0] + "」<br><span class='author'>— " + quote[1] + "</span>", "进入第 " + next + " 关");
+    }
+    function step() {
+      if (!state.running || state.paused) return;
+      const cfg = levelConfig(state.level);
+      state.dirName = state.nextDirName;
+      const dir = DIRS[state.dirName];
+      const head = state.snake[state.snake.length - 1];
+      let nx = head.x + dir.x;
+      let ny = head.y + dir.y;
+      if (cfg.wrap) {
+        nx = (nx + cfg.size) % cfg.size;
+        ny = (ny + cfg.size) % cfg.size;
+      } else if (nx < 0 || ny < 0 || nx >= cfg.size || ny >= cfg.size) {
+        die(); return;
+      }
+      if (state.walls.some(w => w.x === nx && w.y === ny)) { die(); return; }
+      const eat = state.food && state.food.x === nx && state.food.y === ny;
+      const body = eat ? state.snake : state.snake.slice(1);
+      if (body.some(p => p.x === nx && p.y === ny)) { die(); return; }
+      state.snake = body.concat([{ x: nx, y: ny }]);
+      if (eat) {
+        state.eaten += 1;
+        if (state.eaten >= cfg.goal) { updateHud(cfg); draw(cfg); win(); return; }
+        spawnFood(cfg);
+      }
+      updateHud(cfg);
+      draw(cfg);
+    }
+    function setDir(name) {
+      if (!DIRS[name]) return;
+      if (OPP[name] === state.dirName) return;
+      state.nextDirName = name;
+    }
+    function beginFromOverlay() {
+      const mode = startBtn.dataset.mode || "";
+      if (mode === "restart-all") { state.level = 1; saveProgress(); }
+      startBtn.dataset.mode = "";
+      resetLevel();
+      startLoop();
+    }
+    document.addEventListener("gesturestart", (e) => e.preventDefault());
+    document.addEventListener("touchmove", (e) => {
+      if (e.target.closest("canvas") || e.target.closest(".pad")) e.preventDefault();
+    }, { passive: false });
+    let swipe = null;
+    canvas.addEventListener("pointerdown", (e) => {
+      swipe = { x: e.clientX, y: e.clientY };
+      canvas.setPointerCapture(e.pointerId);
+    });
+    canvas.addEventListener("pointerup", (e) => {
+      if (!swipe) return;
+      const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+      swipe = null;
+      if (Math.abs(dx) < 18 && Math.abs(dy) < 18) return;
+      if (Math.abs(dx) > Math.abs(dy)) setDir(dx > 0 ? "right" : "left");
+      else setDir(dy > 0 ? "down" : "up");
+    });
+    document.querySelectorAll(".pad button").forEach(btn => {
+      const fire = (e) => { e.preventDefault(); setDir(btn.dataset.dir); };
+      btn.addEventListener("pointerdown", fire);
+    });
+    startBtn.addEventListener("click", beginFromOverlay);
+    pauseBtn.addEventListener("click", () => {
+      if (!state.running) return;
+      state.paused = !state.paused;
+      pauseBtn.textContent = state.paused ? "继续" : "暂停";
+    });
+    document.getElementById("retryBtn").addEventListener("click", () => {
+      startBtn.dataset.mode = "";
+      resetLevel();
+      startLoop();
+    });
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      if (!confirm("确定清空进度，从第 1 关重新开始？")) return;
+      state.level = 1;
+      saveProgress();
+      startBtn.dataset.mode = "";
+      resetLevel();
+      startLoop();
+    });
+    loadProgress();
+    resetLevel();
+    showOverlay(
+      state.best ? "继续挑战" : "百关启程",
+      state.best
+        ? "最高已通过第 " + state.best + " 关。准备进入第 " + state.level + " 关。"
+        : "竖屏单手操作。滑动棋盘或点右下方向键。吃满果实通关，点亮一句名言。",
+      "开始第 " + state.level + " 关"
+    );
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js").catch(function () {});
+    }
+  </script>
+</body>
+</html>
